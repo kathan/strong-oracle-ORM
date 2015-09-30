@@ -10,7 +10,11 @@ Example:
 var settings = {},
 	oracle = require("strong-oracle")(settings),
 	ORM = require('strong-oracle-ORM'),
-	var connectData = { "hostname": "localhost", "user": "test", "password": "test", "database": "ORCL" };
+	connectData = { "hostname": "localhost",
+			"user": "test",
+			"password": "test",
+			"database": "ORCL"
+			};
 
 new ORM(connectData, 'test_table', function(err, tab){
   tab.insert({id:1, name:'Row1', creation_date:new Date()});
