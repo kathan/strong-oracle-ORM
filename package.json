@@ -1,0 +1,33 @@
+{
+  "name": "strong-oracle-ORM",
+  "description": "Object Relational Mapping class for the strong-oracle library",
+  "keywords": [
+    "database",
+    "db",
+    "oracle",
+    "orm"
+  ],
+  "homepage": "https://github.com/kathan/strong-oracle-ORM",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "maintainers": [
+    {
+      "name": "Darrel Kathan",
+      "email": "darrelkathan@gmail.com"
+    }
+  ],
+  "bugs": {
+    "url": "https://github.com/strongloop/strong-oracle-ORM/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/strongloop/strong-oracle-ORM.git"
+  },
+  "dependencies": {
+    "strong-oracle": ">=1.6.4",
+    "extend": ">=2.0.1",
+  },
+  "main": "./ORM.js"
+}
