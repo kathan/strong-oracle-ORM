@@ -1,5 +1,5 @@
 {
-  "name": "strong-oracle-ORM",
+  "name": "strong-oracle-orm",
   "description": "Object Relational Mapping class for the strong-oracle library",
   "keywords": [
     "database",
