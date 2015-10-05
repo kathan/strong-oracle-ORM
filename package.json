@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "strong-oracle": ">=1.6.4",
-    "extend": ">=2.0.1",
+    "extend": ">=2.0.1"
   },
   "main": "./ORM.js"
 }
