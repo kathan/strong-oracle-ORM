@@ -2,7 +2,7 @@
 This is an Object Relational Mapping class for the strong-oracle library.
 
 ####Dependencies:
-* [strong-oracle](https://github.com/strong/strong-oracle)
+* [strong-oracle](https://github.com/strongloop/strong-oracle)
 
 Example:
 ```js
