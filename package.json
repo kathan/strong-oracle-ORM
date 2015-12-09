@@ -19,11 +19,11 @@
     }
   ],
   "bugs": {
-    "url": "https://github.com/strongloop/strong-oracle-ORM/issues"
+    "url": "https://github.com/kathan/strong-oracle-ORM/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/strongloop/strong-oracle-ORM.git"
+    "url": "git://github.com/kathan/strong-oracle-ORM.git"
   },
   "dependencies": {
     "strong-oracle": ">=1.6.4",
