@@ -1,13 +1,14 @@
+/*jshint multistr: true*/
 /**************************
 	Class: ORM
 		An Node.js object relational mapping class. Used to insert, update or delete rows in Oracle tables.
 	
 	Created by Darrel Kathan Feb 26th, 2015
+	Updated by Darrel Kathan Feb 22nd, 2016
 **************************/
 var settings = {},
 	db = require('strong-oracle')(settings), //Oracle bind library for Node.js https://github.com/strongloop/strong-oracle
 	extend = require('extend');		//Library for "extending" classes. https://github.com/justmoon/node-extend
-	//ORMColumn = require('./OrmColumn.js');
  
 /**************************
 	Function: ORM
@@ -77,15 +78,15 @@ function ORM(conn, table, callback){
 					
 					row = result[i];
 					
-					if(!self.columns[row['COLUMN_NAME']]){
-						//console.log(row['COLUMN_NAME']);
-						column = new ORMColumn(self, row['COLUMN_NAME']);
-						column.type = row['DATA_TYPE'];
-						column.length = row['DATA_LENGTH'];
+					if(!self.columns[row.COLUMN_NAME]){
+						//console.log(row.COLUMN_NAME);
+						column = new ORMColumn(self, row.COLUMN_NAME);
+						column.type = row.DATA_TYPE;
+						column.length = row.DATA_LENGTH;
 					
-						row['PRIMARY'] == 'Y' ? column.is_primary = true : '';
-						row['NULLABLE'] == 'Y' ? column.not_null = false : '';
-						self.columns[row['COLUMN_NAME']] = column;
+						row.PRIMARY == 'Y' ? column.is_primary = true : '';
+						row.NULLABLE == 'Y' ? column.not_null = false : '';
+						self.columns[row.COLUMN_NAME] = column;
 					}
 				}
 				return callback();
@@ -109,10 +110,9 @@ function ORM(conn, table, callback){
 			pk_obj,
 			i,
 			bind_obj = [],
-			bind_count = 1,
 			pk,
 			sql = 'INSERT INTO '+this.name+'(';
-		
+		console.log('input:', input);
 		for(column in input){
 			var column_name = null;	
 			if(this.columns[column]){
@@ -124,16 +124,14 @@ function ORM(conn, table, callback){
 			}
 			
 			if(column_name){
+			  console.log('found:'+column_name+'='+input[column_name]);
 				if(column_names !== ''){
 					column_names += ', ';
 					values += ', ';
 				}
 				column_names += column;
-				values += ':'+bind_count;
-				//values += ':'+column+'_IN';
-				//bind_obj[column+'_IN'] = input[column];
-				bind_obj.push(input[column_name]);
-				bind_count++;
+				values += ':'+bind_obj.push(input[column_name]);
+				
 			}else{
 				return callback('"'+column+'" column was not found in '+self.name+' table. ORM.insert');
 			}
@@ -155,16 +153,11 @@ function ORM(conn, table, callback){
 				pk_obj = pks[i];
 				i > 0 ? sql += ',' : '';
 				pk = pk_obj.name;
-				//bind_obj[pk+'_OUT'] = { type: pk_obj.getOraType(), dir : db.BIND_OUT };
-				//console.log(pk+' type: '+pk_obj.getOraType());
-				bind_obj.push(new db.OutParam(pk_obj.getOraType())),
 				
-				//sql += ' :'+pk+'_OUT';
-				sql += ' :'+bind_count;
-				bind_count++;
+				sql += ' :'+bind_obj.push(new db.OutParam(pk_obj.getOraType()));
 			}
 		}
-		//console.log('bind:', bind_obj);
+		this.binds = bind_obj;
 		this.sql = sql;
 		this.conn.execute(sql, bind_obj, function(err, result){
 			var result_cpy;
@@ -173,16 +166,18 @@ function ORM(conn, table, callback){
 			
 			if(err){
 				err.sql = sql;
-				return callback(err);
+				return callback(err.toString());
 			}
-			return callback(null, result_cpy);
+			result.sql = sql;
+			result.binds = bind_obj;
+			return callback(null, result);
 			
 		});
-	}
+	};
 	
 	this.add = function(input, callback){
 		return this.insert(input, callback);
-	}
+	};
 	
 	/**************************
 		Function: update
@@ -193,19 +188,15 @@ function ORM(conn, table, callback){
 			callback - A function to be called when the insert is update. Ex. callback(err, result)
 	**************************/
 	this.update = function(query, input, callback){
-		var pks = getPrimaryKeys(),
-			set_str = '',
+		var set_str = '',
 			clause = 'WHERE',
-			pk_obj,
 			column,
-			param,
-			cur_col,
+      column_name,
 			bind_obj = [],
-			bind_count = 0;
 			sql = 'UPDATE '+this.name+' SET ';
 		
 		for(column in input){
-			var column_name = null;
+			column_name = null;
 			if(this.columns[column]){
 				column_name = column;
 			}else if(this.columns[column.toUpperCase()]){
@@ -215,11 +206,9 @@ function ORM(conn, table, callback){
 			}
 			
 			if(column_name){
-				bind_count++;
 				set_str !== '' ? set_str += ', ' : '';
-				set_str += column_name+' = :'+bind_count;
+				set_str += column_name+' = :'+bind_obj.push(input[column_name]);
 				
-				bind_obj.push(input[column_name]);
 			}else{
 				return callback('"'+column+'" column was not found in '+self.name+' table. ORM.update input');
 			}
@@ -227,7 +216,7 @@ function ORM(conn, table, callback){
 		sql += set_str;
 		
 		for(column in query){
-			var column_name = null;
+			column_name = null;
 			if(this.columns[column]){
 				column_name = column;
 			}else if(this.columns[column.toUpperCase()]){
@@ -237,10 +226,8 @@ function ORM(conn, table, callback){
 			}
 			
 			if(column_name){
-				bind_count++;
-				sql += ' '+clause+' '+column_name+' = :'+bind_count;
+				sql += ' '+clause+' '+column_name+' = :'+bind_obj.push(query[column_name]);
 				
-				bind_obj.push(query[column_name]);
 				clause = 'AND';
 			}else{
 				return callback('"'+column+'" column was not found in '+self.name+' table. ORM.update query');
@@ -249,16 +236,17 @@ function ORM(conn, table, callback){
 		
 		//console.log(sql, bind_obj);
 		this.sql = sql;
+		this.binds = bind_obj;
+				
 		this.conn.execute(sql, bind_obj, function(err, result){
 			//console.log('Update complete');
 			if(err){
-				err.bind_obj = bind_obj;
-				err.sql = sql;
-				return callback(err);
+				
+				return callback(err.toString());
 			}
 			return callback(null, result);
 		});
-	}
+	};
 	
 	/**************************
 		Function: delete
@@ -268,30 +256,44 @@ function ORM(conn, table, callback){
 			input - An object that has the table column/value pairs to delete. Entering '*' will delete everything. Ex. 1 {ID:1} / Ex. 2 '*'
 			callback - A function to be called when the insert is update. Ex. callback(err, result)
 	**************************/
-	this.delete = function(/*query,*/ input, callback){
-		var pks = getPrimaryKeys(),	//
-			clause = 'WHERE',		//The current clause in the WHERE expression
-			pk_obj,
+	this.delete = function(query, input, callback){
+		var clause = 'WHERE',		//The current clause in the WHERE expression
+
+      column,
+      column_name,
+
 			bind_obj = {},
 			sql = "DELETE FROM ".this.name;
 		
-		for(i=0; pks.length > i; i++){
-			pk_obj = pks[i];
-			pk = pk_obj.name;
-			sql +=  clause+' '+pk+' = :'+pk;
-			bind_obj[pk] = null;
-			clause = 'AND';
+		for(column in query){
+			column_name = null;
+			if(this.columns[column]){
+				column_name = column;
+			}else if(this.columns[column.toUpperCase()]){
+				column_name = column.toUpperCase();
+			}else if(this.columns[column.toLowerCase()]){
+				column_name.toLowerCase();
+			}
+			
+			if(column_name){
+				sql += ' '+clause+' '+column_name+' = :'+bind_obj.push(query[column_name]);
+				
+				clause = 'AND';
+			}else{
+				return callback('"'+column+'" column was not found in '+self.name+' table. ORM.update query');
+			}
 		}
-		
+		this.sql = sql;
+		this.binds = bind_obj;
 		this.conn.execute(sql, bind_obj, function(err, result){
 			if(err){
-				err.sql = sql;
-				return callback(err);
+				
+				return callback(err.toString());
 			}else{
 				return callback(null, result);
 			}
 		});
-	}
+	};
 	
 	/**************************
 		Function: commit
@@ -302,7 +304,7 @@ function ORM(conn, table, callback){
 	**************************/
 	this.commit = function(callback){
 		this.conn.commit(callback);
-	}
+	};
 	
 	/**************************
 		Function: rollback
@@ -313,7 +315,7 @@ function ORM(conn, table, callback){
 	**************************/
 	this.rollback = function(callback){
 		this.conn.rollback(callback);
-	}
+	};
 	
 	/**************************
 		Function: getPrimaryKeys
@@ -378,13 +380,13 @@ function ORM(conn, table, callback){
 	}
 }
 
-function ORMColumn(table_obj, name){
+function ORMColumn(table_o, name){
 	this.length;
 	this.type;
 	this.is_primary;
 	this.not_null;
 	this.name = name;
-	var table_obj = table_obj;
+	var table_obj = table_o;
 	
 	/************************
 	Function: getOraType
@@ -398,24 +400,19 @@ function ORMColumn(table_obj, name){
 		switch(this.type){
 			case 'NUMBER':
 				return db.OCCINUMBER;
-				break;
 			case 'DATE':
 				return db.OCCIDATE;
-				break;
 			case 'TIMESTAMP':
 				return db.OCCIDATE;
-				break;
 			case 'BLOB':
-				return db.OCCIBLOB
-				break;
+				return db.OCCIBLOB;
 			case 'CLOB':
-				return db.OCCICLOB
-				break;
+				return db.OCCICLOB;
 			default:
 				return db.OCCISTRING;
-				break;
+
 		}
-	}
+	};
 }
  
 module.exports = ORM;
